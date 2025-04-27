@@ -1,0 +1,9 @@
+
+.venv/
+outputs/
+fastapi.log
+*.pyc
+__pycache__/
+.DS_Store
+.env
+*.log

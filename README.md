@@ -65,11 +65,39 @@ pip install -r requirements.txt
   ```
 - See `src/data/README.md` for dataset links, structure, tips, and license notes for each dataset.
 
-### 3. Configure Your Experiment
+### 3. Dataset Setup: Download & Organize TrashNet (Manual)
+
+Before training, you must manually download and organize the TrashNet dataset:
+
+1. **Download the dataset:**
+   - Visit the official TrashNet repo: https://github.com/garythung/trashnet
+   - Download the images archive (usually linked as a Google Drive or Dropbox link in the repo's README)
+
+2. **Extract the contents:**
+   - Unzip the dataset into your project at: `data/trashnet/`
+   - The structure should look like:
+     ```
+     data/trashnet/train/cardboard/
+     data/trashnet/train/glass/
+     data/trashnet/train/metal/
+     data/trashnet/train/paper/
+     data/trashnet/train/plastic/
+     data/trashnet/train/trash/
+     data/trashnet/val/[same folders as above]
+     data/trashnet/test/[same folders as above]
+     ```
+
+3. **Verify:**
+   - Ensure each class folder contains images.
+   - If any folders are missing or empty, training will fail.
+
+If you need help with this process or want a verification script, let us know!
+
+### 4. Configure Your Experiment
 - Edit or create a YAML config in `configs/` (e.g., `baseline.yaml`).
 - Set dataset path, class names, model type, batch size, epochs, etc.
 
-### 4. Train a Model
+### 5. Train a Model
 ```bash
 python src/train.py --config configs/baseline.yaml
 ```
@@ -150,7 +178,7 @@ All required packages are in `requirements.txt` (including fastapi, uvicorn, pil
 
 ### 3. Start the API Server
 ```bash
-uvicorn src.api:app --reload
+uvicorn src.api:app --reload --port 8001
 ```
 
 ### 4. API Endpoints
@@ -159,7 +187,7 @@ uvicorn src.api:app --reload
 - Upload a single image file and get predicted class and probabilities.
 - Example:
 ```bash
-curl -X POST "http://127.0.0.1:8000/predict" -F "file=@yourimage.jpg"
+curl -X POST "http://127.0.0.1:8001/predict" -F "file=@yourimage.jpg"
 ```
 - Response:
 ```json
@@ -174,7 +202,7 @@ curl -X POST "http://127.0.0.1:8000/predict" -F "file=@yourimage.jpg"
 - Upload an image with multiple waste items. Returns bounding boxes, predicted classes, probabilities, and base64-encoded crops.
 - Example:
 ```bash
-curl -X POST "http://127.0.0.1:8000/detect_and_classify" -F "file=@yourimage.jpg"
+curl -X POST "http://127.0.0.1:8001/detect_and_classify" -F "file=@yourimage.jpg"
 ```
 - Response includes detection results and image with bounding boxes.
 
@@ -185,7 +213,7 @@ A user-friendly web interface for classifying images with your trained models. B
 
 ### 1. Start the FastAPI Backend
 ```bash
-uvicorn src.api:app --reload
+uvicorn src.api:app --reload --port 8001
 ```
 
 ### 2. Install UI Dependencies
@@ -219,7 +247,7 @@ streamlit run src/webui.py
 ---
 1. Start the FastAPI backend:
    ```bash
-   uvicorn src.api:app --reload
+   uvicorn src.api:app --reload --port 8001
    ```
 2. Launch the Streamlit UI:
    ```bash

@@ -8,7 +8,7 @@ from PIL import Image
 import io
 import base64
 
-API_URL = "http://localhost:8000"
+API_URL = "http://localhost:8001"
 
 st.set_page_config(page_title="Waste Image Classifier", layout="centered")
 st.title("Waste Image Classification Web UI")

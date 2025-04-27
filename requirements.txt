@@ -16,3 +16,4 @@ streamlit
 requests
 ultralytics
 opencv-python
+tensorboard
