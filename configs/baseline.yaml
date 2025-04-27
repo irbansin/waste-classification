@@ -1,5 +1,16 @@
 data_dir: data/trashnet
-classes: [metal, plastic, paper, glass, cardboard, trash]
+classes: [metal, plastic, paper, glass, cardboard, trash, organic, medical]
+level_1_classes: [Organic, Inorganic]
+level_2_classes: [metal, plastic, paper, glass, cardboard, trash, organic, medical]
+hierarchy:
+  metal: Inorganic
+  plastic: Inorganic
+  paper: Inorganic
+  glass: Inorganic
+  cardboard: Inorganic
+  medical: Inorganic
+  trash: Organic
+  organic: Organic
 model: baseline_cnn
 batch_size: 32
 img_size: 224

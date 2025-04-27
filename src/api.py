@@ -34,6 +34,7 @@ with open(CONFIG_PATH, 'r') as f:
     config = yaml.safe_load(f)
 classes = config['classes']
 num_classes = len(classes)
+hierarchy = config.get('hierarchy', {})
 
 def load_model():
     if MODEL_TYPE == 'baseline_cnn':
@@ -89,9 +90,20 @@ async def predict_video(file: UploadFile = File(...)):
             for patch_info in patches:
                 patch = patch_info['patch']
                 coords = patch_info['coords']
-                result = classify_patch(patch, model, classes, transform)
-                result['coords'] = coords
-                patch_results.append(result)
+                # Detect trash presence using YOLO
+                patch_np = np.array(patch)
+                yolo_results = yolo_model(patch_np)
+                has_trash = False
+                # If any detection in patch, mark as trash present
+                if hasattr(yolo_results[0], 'boxes') and hasattr(yolo_results[0].boxes, 'xyxy'):
+                    detections = yolo_results[0].boxes.xyxy.cpu().numpy()
+                    if len(detections) > 0:
+                        has_trash = True
+                if has_trash:
+                    result = classify_patch_hierarchical(patch, model, classes, transform, hierarchy)
+                    result['coords'] = coords
+                    patch_results.append(result)
+                # If no trash detected, skip classification
             frame_results.append({
                 "frame": frame_count,
                 "patches": patch_results
