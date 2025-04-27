@@ -100,7 +100,7 @@ pip install -r requirements.txt
 5. **Train**
    - Run:
      ```bash
-     python src/train.py --config configs/garbage_12.yaml
+     python -m src.train --config configs/garbage_12.yaml
      ```
 
 6. **Tips**
@@ -153,12 +153,12 @@ For more details, see the [TrashNet dataset page on HuggingFace](https://hugging
 
 ### 5. Train a Model
 ```bash
-python src/train.py --config configs/baseline.yaml
+python -m src.train --config configs/baseline.yaml
 ```
 - You can use any YAML config in `configs/` (not just baseline.yaml)
 - Optional CLI overrides:
 ```bash
-python src/train.py --config configs/baseline.yaml --epochs 20 --batch_size 64
+python -m src.train --config configs/baseline.yaml --epochs 20 --batch_size 64
 ```
 
 ### 5. Evaluate the Model
