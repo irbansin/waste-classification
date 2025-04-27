@@ -56,7 +56,7 @@ pip install -r requirements.txt
 ```
 
 ### 2. Data Preparation
-- Download datasets (e.g., TrashNet, Kaggle) and place them in `data/`.
+- Download datasets (e.g., TrashNet, Kaggle, Garbage Classification) and place them in `data/`.
 - Organize each dataset as:
   ```
   data/<dataset_name>/train/<class_name>/*.jpg
@@ -64,6 +64,49 @@ pip install -r requirements.txt
   data/<dataset_name>/test/<class_name>/*.jpg  # Optional
   ```
 - See `src/data/README.md` for dataset links, structure, tips, and license notes for each dataset.
+
+#### Example: Using a Larger Dataset (e.g., Garbage Classification or Kaggle Waste)
+
+1. **Download**
+   - Go to the dataset page (e.g., [Garbage Classification on Papers With Code](https://paperswithcode.com/dataset/garbage-classification-dataset) or [Waste Classification on Kaggle](https://www.kaggle.com/datasets/techsash/waste-classification-data)).
+   - Download the dataset archive (ZIP, TAR, etc.).
+
+2. **Extract**
+   - Extract the archive into the `data/` directory. For example, for Garbage Classification:
+     ```bash
+     unzip garbage_classification.zip -d data/
+     ```
+   - After extraction, you should have a folder such as `data/garbage_12/` or `data/waste_kaggle/` containing class subfolders or images.
+
+3. **Organize Folders**
+   - Ensure the folder structure matches:
+     ```
+     data/<dataset_name>/train/<class_name>/*.jpg
+     data/<dataset_name>/val/<class_name>/*.jpg
+     data/<dataset_name>/test/<class_name>/*.jpg  # Optional
+     ```
+   - If the dataset does not provide train/val/test splits, you can create them manually. Use scripts in `notebooks/` or write your own to split images by class.
+
+4. **Update Config**
+   - Edit or create a config YAML in `configs/` (e.g., `configs/garbage_12.yaml`).
+   - Set:
+     ```yaml
+     data_source: folders
+     data_dir: data/garbage_12
+     classes: ["class1", "class2", ..., "classN"]  # List all class folder names
+     ```
+   - Make sure the `classes` list matches the subfolder names in your dataset.
+
+5. **Train**
+   - Run:
+     ```bash
+     python src/train.py --config configs/garbage_12.yaml
+     ```
+
+6. **Tips**
+   - Double-check class names for typos or mismatches.
+   - For large datasets, you may want to increase `batch_size` or adjust `num_workers` in your config.
+   - If you encounter memory issues, try reducing `batch_size`.
 
 ### 3. Dataset Setup: HuggingFace TrashNet (Default)
 
@@ -153,7 +196,12 @@ python src/pseudo_label.py --config configs/pseudo_label.yaml
 - Hierarchical accuracy
 
 ## How to Extend
-- **Add a dataset:** Place images in `data/`, update config, check class names, update `src/data/dataset.py` if needed.
+- **Add a dataset:**
+  1. Download and extract the dataset to `data/<dataset_name>/`.
+  2. Split into `train/`, `val/`, and (optionally) `test/` folders per class.
+  3. Update or create a YAML config in `configs/` with the correct `data_source`, `data_dir`, and `classes` list.
+  4. Run training as described above.
+  5. If your dataset structure is different or you need custom logic, extend `src/data/dataset.py` with a new adapter class and update `get_data_loaders_from_source`.
 - **Add a model:** Add to `src/models/`, update training script if needed.
 - **Add metrics:** Extend `src/train.py` or use your own analysis scripts.
 - **Add experiments:** Create new YAML config files in `configs/`.
