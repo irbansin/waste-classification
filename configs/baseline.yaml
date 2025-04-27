@@ -1,0 +1,11 @@
+data_dir: data/trashnet
+classes: [metal, plastic, paper, glass, cardboard, trash]
+model: baseline_cnn
+batch_size: 32
+img_size: 224
+epochs: 15
+lr: 0.001
+augment: true
+pretrained: false
+checkpoint_dir: outputs
+log_dir: runs/baseline_cnn
