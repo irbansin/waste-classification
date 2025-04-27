@@ -6,19 +6,19 @@ A modular deep learning system for classifying waste images into multiple catego
 ## Architecture Diagram
 ```mermaid
 flowchart TD
-    A[Data Preparation<br>(data/)] --> B[Config & Experiment Setup<br>(configs/)]
-    B --> C[Training<br>(src/train.py)]
-    C --> D[Model Checkpoints<br>(outputs/)]
-    D --> E[Evaluation<br>(src/evaluate.py / Notebooks)]
-    D --> F[API Deployment<br>(src/api.py)]
-    D --> G[Web UI Deployment<br>(src/webui.py)]
-    F --> H1[Single Image Prediction<br>/predict endpoint]
-    F --> H2[Multi-Item Detection<br>/detect_and_classify endpoint]
+    A[Data Preparation (data/)] --> B[Config & Experiment Setup (configs/)]
+    B --> C[Training (src/train.py)]
+    C --> D[Model Checkpoints (outputs/)]
+    D --> E[Evaluation (src/evaluate.py, Notebooks)]
+    D --> F[API Deployment (src/api.py)]
+    D --> G[Web UI Deployment (src/webui.py)]
+    F --> H1[Single Image Prediction (/predict)]
+    F --> H2[Multi-Item Detection (/detect_and_classify)]
     G --> I[User Uploads Image]
     I --> J1[API: /predict]
     I --> J2[API: /detect_and_classify]
     J1 --> K1[Show Class & Probabilities]
-    J2 --> K2[Show Bounding Boxes, Crops, Classes]
+    J2 --> K2[Show Boxes, Crops, Classes]
 ```
 
 ## Features
