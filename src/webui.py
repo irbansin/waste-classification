@@ -21,7 +21,7 @@ if mode == "Classify Single Waste Item":
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"], key="single")
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert('RGB')
-        st.image(image, caption="Uploaded Image", use_column_width=True)
+        st.image(image, caption="Uploaded Image", use_container_width=True)
         st.write("")
         if st.button("Classify Image"):
             with st.spinner("Classifying..."):
@@ -48,7 +48,7 @@ elif mode == "Detect & Classify Multiple Items":
     uploaded_file = st.file_uploader("Upload an image with multiple waste items...", type=["jpg", "jpeg", "png"], key="multi")
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert('RGB')
-        st.image(image, caption="Uploaded Image", use_column_width=True)
+        st.image(image, caption="Uploaded Image", use_container_width=True)
         if st.button("Detect & Classify Items"):
             with st.spinner("Detecting and Classifying..."):
                 img_bytes = io.BytesIO()
@@ -62,7 +62,7 @@ elif mode == "Detect & Classify Multiple Items":
                         # Show image with bounding boxes
                         img_with_boxes_b64 = result['image_with_boxes_b64']
                         img_with_boxes = Image.open(io.BytesIO(base64.b64decode(img_with_boxes_b64)))
-                        st.image(img_with_boxes, caption="Detected Items", use_column_width=True)
+                        st.image(img_with_boxes, caption="Detected Items", use_container_width=True)
                         st.subheader("Detected Waste Items:")
                         for i, det in enumerate(result['detections']):
                             st.markdown(f"**Item {i+1}: {det['predicted_label']}** (prob: {det['probability']:.2f})")
