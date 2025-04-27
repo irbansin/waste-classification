@@ -7,3 +7,6 @@ __pycache__/
 .DS_Store
 .env
 *.log
+*.pt
+*.0
+

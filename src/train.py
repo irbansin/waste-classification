@@ -34,13 +34,8 @@ def train(config):
     # Get data loaders (train, val, test)
     try:
         train_loader, val_loader, test_loader = get_data_loaders(
-            config['data_dir'],
-            classes,
-            batch_size=config['batch_size'],
-            img_size=config['img_size'],
-            augment=config['augment'],
-            num_workers=config.get('num_workers', 2),
-            seed=seed,
+            config,
+            classes=classes,
             include_test=True
         )
     except Exception as e:
@@ -65,7 +60,7 @@ def train(config):
     model = model.to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=config['lr'])
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=3, verbose=True)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=3)
     writer = SummaryWriter(log_dir=config.get('log_dir', './runs'))
     best_acc = 0.0
     patience = config.get('early_stopping_patience', 7)

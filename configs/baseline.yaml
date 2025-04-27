@@ -3,7 +3,7 @@ classes: [metal, plastic, paper, glass, cardboard, trash]
 model: baseline_cnn
 batch_size: 32
 img_size: 224
-epochs: 15
+epochs: 3
 lr: 0.001
 augment: true
 pretrained: false

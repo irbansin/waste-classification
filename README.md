@@ -65,33 +65,44 @@ pip install -r requirements.txt
   ```
 - See `src/data/README.md` for dataset links, structure, tips, and license notes for each dataset.
 
-### 3. Dataset Setup: Download & Organize TrashNet (Manual)
+### 3. Dataset Setup: HuggingFace TrashNet (Default)
 
-Before training, you must manually download and organize the TrashNet dataset:
+By default, this project uses the TrashNet dataset via the HuggingFace Datasets library. This is fast, reproducible, and **requires no manual download or extraction**.
 
-1. **Download the dataset:**
-   - Visit the official TrashNet repo: https://github.com/garythung/trashnet
-   - Download the images archive (usually linked as a Google Drive or Dropbox link in the repo's README)
+**Install the HuggingFace Datasets library (if not already installed):**
+```bash
+pip install datasets
+```
 
-2. **Extract the contents:**
-   - Unzip the dataset into your project at: `data/trashnet/`
-   - The structure should look like:
-     ```
-     data/trashnet/train/cardboard/
-     data/trashnet/train/glass/
-     data/trashnet/train/metal/
-     data/trashnet/train/paper/
-     data/trashnet/train/plastic/
-     data/trashnet/train/trash/
-     data/trashnet/val/[same folders as above]
-     data/trashnet/test/[same folders as above]
-     ```
+**Default behavior:**
+- If you do not specify a `data_source` in your config YAML, the code will automatically download and use the TrashNet dataset from HuggingFace on first run.
 
-3. **Verify:**
-   - Ensure each class folder contains images.
-   - If any folders are missing or empty, training will fail.
+**To use a local folder dataset instead:**
+- Set `data_source: folders` in your config YAML (e.g. `configs/baseline.yaml`).
+- The expected folder structure is:
+  ```
+  data/trashnet/train/cardboard/
+  data/trashnet/train/glass/
+  ...
+  data/trashnet/val/[same folders as above]
+  data/trashnet/test/[same folders as above]
+  ```
 
-If you need help with this process or want a verification script, let us know!
+**Manual HuggingFace usage example:**
+```python
+from datasets import load_dataset
+
+ds = load_dataset("garythung/trashnet")
+```
+- This will automatically download and prepare the dataset splits (`train`, `test`, `validation`).
+- You can access images and labels directly from the `ds` object.
+
+**Extending to new dataset sources:**
+- The codebase uses a factory/adapter pattern for dataset loading.
+- To add a new source, create a new `torch.utils.data.Dataset` adapter and add a block in `get_data_loaders_from_source` in `src/data/dataset.py`.
+- Document the new source in your config and README.
+
+For more details, see the [TrashNet dataset page on HuggingFace](https://huggingface.co/datasets/garythung/trashnet).
 
 ### 4. Configure Your Experiment
 - Edit or create a YAML config in `configs/` (e.g., `baseline.yaml`).

@@ -20,8 +20,8 @@ import base64
 app = FastAPI(title="Waste Image Classification API")
 
 # --- CONFIG ---
-MODEL_TYPE = "resnet50"  # Change to 'baseline_cnn' or 'efficientnet_b0' as needed
-MODEL_PATH = "outputs/resnet50_best.pth"  # Path to trained weights
+MODEL_TYPE = "baseline_cnn"  # Change to 'baseline_cnn' or 'efficientnet_b0' as needed
+MODEL_PATH = "outputs/baseline_cnn_best.pth"  # Path to trained weights
 CONFIG_PATH = "configs/baseline.yaml"  # Path to config (for class names)
 IMG_SIZE = 224
 
