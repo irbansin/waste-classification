@@ -38,9 +38,10 @@ flowchart TD
 waste-classification/
 │
 ├── data/                # Place for raw and processed datasets (see src/data/README.md)
-├── configs/             # YAML configs for experiments
+├── configs/             # YAML configs for experiments (use any YAML here, e.g. baseline.yaml)
 ├── src/                 # Source code: data, models, training, API, UI
-├── requirements.txt     # Python dependencies
+├── outputs/             # Model checkpoints (created during training)
+├── requirements.txt     # Python dependencies (covers training, API, UI)
 ├── README.md            # Project overview and instructions
 └── LICENSE
 ```
@@ -62,7 +63,7 @@ pip install -r requirements.txt
   data/<dataset_name>/val/<class_name>/*.jpg
   data/<dataset_name>/test/<class_name>/*.jpg  # Optional
   ```
-- See `src/data/README.md` for dataset links, recommendations, and structure.
+- See `src/data/README.md` for dataset links, structure, tips, and license notes for each dataset.
 
 ### 3. Configure Your Experiment
 - Edit or create a YAML config in `configs/` (e.g., `baseline.yaml`).
@@ -72,6 +73,7 @@ pip install -r requirements.txt
 ```bash
 python src/train.py --config configs/baseline.yaml
 ```
+- You can use any YAML config in `configs/` (not just baseline.yaml)
 - Optional CLI overrides:
 ```bash
 python src/train.py --config configs/baseline.yaml --epochs 20 --batch_size 64
@@ -142,7 +144,9 @@ All required packages are in `requirements.txt` (including fastapi, uvicorn, pil
 
 ### 2. Ensure Model Weights and Config are Available
 - Place trained model weights (e.g., `outputs/resnet50_best.pth`) and config (e.g., `configs/baseline.yaml`) in the appropriate locations.
+- Both the API and web UI require these files to be present and correctly referenced.
 - Switch models by editing `MODEL_TYPE` and `MODEL_PATH` in `src/api.py`.
+- Note: YOLOv8 weights (`yolov8n.pt`) are auto-downloaded by ultralytics the first time detection is run.
 
 ### 3. Start the API Server
 ```bash
@@ -177,7 +181,7 @@ curl -X POST "http://127.0.0.1:8000/detect_and_classify" -F "file=@yourimage.jpg
 ---
 
 ## Using the Web UI
-A user-friendly web interface for classifying images with your trained models.
+A user-friendly web interface for classifying images with your trained models. Both single-item and multi-item detection/classification are supported out of the box.
 
 ### 1. Start the FastAPI Backend
 ```bash
@@ -209,8 +213,10 @@ streamlit run src/webui.py
 ---
 
 ## Detecting and Classifying Multiple Waste Items
-- The web UI and API support detection and classification of multiple waste items in a single image using YOLOv8.
+- The web UI and API support detection and classification of multiple waste items in a single image using YOLOv8. No extra setup is required.
 - Results include bounding boxes, cropped images, predicted classes, and download options.
+
+---
 1. Start the FastAPI backend:
    ```bash
    uvicorn src.api:app --reload
