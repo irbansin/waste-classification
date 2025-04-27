@@ -14,7 +14,7 @@ st.set_page_config(page_title="Waste Image Classifier", layout="centered")
 st.title("Waste Image Classification Web UI")
 
 # Tabs for single and multi-item detection/classification
-mode = st.sidebar.radio("Choose Mode", ["Classify Single Waste Item", "Detect & Classify Multiple Items"])
+mode = st.sidebar.radio("Choose Mode", ["Classify Single Waste Item", "Detect & Classify Multiple Items", "Detect & Classify from Video"])
 
 if mode == "Classify Single Waste Item":
     st.header("Classify a Single Waste Item")
@@ -88,3 +88,46 @@ elif mode == "Detect & Classify Multiple Items":
                     st.error(f"Could not connect to API: {e}")
     else:
         st.info("Please upload an image file to begin.")
+
+elif mode == "Detect & Classify from Video":
+    st.header("Detect & Classify Trash from Video")
+    uploaded_video = st.file_uploader("Upload a video file...", type=["mp4", "avi", "mov", "mkv"], key="video")
+    if uploaded_video is not None:
+        st.video(uploaded_video)
+        if st.button("Detect & Classify Trash in Video"):
+            with st.spinner("Processing video and classifying frames..."):
+                files = {'file': (uploaded_video.name, uploaded_video, uploaded_video.type)}
+                try:
+                    response = requests.post(f"{API_URL}/predict_video", files=files)
+                    if response.status_code == 200:
+                        result = response.json()
+                        st.success("Video processed. See results below.")
+                        st.subheader("Aggregated Class Counts Across Video")
+                        st.json(result.get("class_counts", {}))
+                        st.subheader("Detected Trash Items in Sampled Frames")
+                        frame_results = result.get("frame_results", [])
+                        if frame_results:
+                            max_frames = min(10, len(frame_results))
+                            for fr in frame_results[:max_frames]:
+                                st.markdown(f"**Frame {fr['frame']}**")
+                                patches = fr.get('patches', [])
+                                if patches:
+                                    for i, patch in enumerate(patches):
+                                        st.markdown(f"**Patch {i+1}: {patch['predicted_label']}** (prob: {patch['probability']:.2f})")
+                                        coords = patch.get('coords', [])
+                                        st.write(f"Coords: {coords}")
+                                        patch_img = Image.open(io.BytesIO(base64.b64decode(patch['patch_b64'])))
+                                        st.image(patch_img, caption=f"Patch {i+1}", width=120)
+                                    st.markdown("---")
+                                else:
+                                    st.info("No patches detected in this frame.")
+                            if len(frame_results) > max_frames:
+                                st.info(f"...and {len(frame_results) - max_frames} more frames processed.")
+                        else:
+                            st.info("No patch detections found in the video frames.")
+                    else:
+                        st.error(f"API Error: {response.status_code} - {response.text}")
+                except Exception as e:
+                    st.error(f"Could not connect to API: {e}")
+    else:
+        st.info("Please upload a video file to begin.")

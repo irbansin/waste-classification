@@ -16,6 +16,10 @@ from src.models.efficientnet import get_efficientnet_model
 from ultralytics import YOLO
 import yaml
 import base64
+import tempfile
+import cv2
+import numpy as np
+from src.image_utils import divide_image_into_grid, classify_patch, get_transform
 
 app = FastAPI(title="Waste Image Classification API")
 
@@ -55,6 +59,52 @@ transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
+
+@app.post("/predict_video")
+async def predict_video(file: UploadFile = File(...)):
+    """
+    Accepts a video file, extracts frames, divides each into a grid, classifies each patch,
+    and returns all patch results and images.
+    """
+    # Save uploaded video to a temp file
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video:
+        temp_video.write(await file.read())
+        temp_video_path = temp_video.name
+
+    cap = cv2.VideoCapture(temp_video_path)
+    frame_results = []
+    frame_count = 0
+    sample_rate = 10  # Process every 10th frame for speed
+    grid_size = 3  # 3x3 grid
+    transform = get_transform()
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        if frame_count % sample_rate == 0:
+            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            pil_img = Image.fromarray(rgb_frame)
+            patches = divide_image_into_grid(pil_img, grid_size=grid_size)
+            patch_results = []
+            for patch_info in patches:
+                patch = patch_info['patch']
+                coords = patch_info['coords']
+                result = classify_patch(patch, model, classes, transform)
+                result['coords'] = coords
+                patch_results.append(result)
+            frame_results.append({
+                "frame": frame_count,
+                "patches": patch_results
+            })
+        frame_count += 1
+    cap.release()
+    # Aggregate: count per class across all patches and frames
+    class_counts = {}
+    for frame in frame_results:
+        for patch in frame["patches"]:
+            label = patch["predicted_label"]
+            class_counts[label] = class_counts.get(label, 0) + 1
+    return {"frame_results": frame_results, "class_counts": class_counts}
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):

@@ -18,3 +18,5 @@ ultralytics
 opencv-python
 tensorboard
 datasets
+watchdog
+python-multipart
