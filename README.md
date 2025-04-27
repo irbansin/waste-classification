@@ -76,44 +76,8 @@ pip install -r requirements.txt
      ```bash
      unzip garbage_classification.zip -d data/
      ```
-   - After extraction, you should have a folder such as `data/garbage_12/` or `data/waste_kaggle/` containing class subfolders or images.
-
-3. **Organize Folders**
-   - Ensure the folder structure matches:
-     ```
-     data/<dataset_name>/train/<class_name>/*.jpg
-     data/<dataset_name>/val/<class_name>/*.jpg
-     data/<dataset_name>/test/<class_name>/*.jpg  # Optional
-     ```
-   - If the dataset does not provide train/val/test splits, you can create them manually. Use scripts in `notebooks/` or write your own to split images by class.
-
-4. **Update Config**
-   - Edit or create a config YAML in `configs/` (e.g., `configs/garbage_12.yaml`).
-   - Set:
-     ```yaml
-     data_source: folders
-     data_dir: data/garbage_12
-     classes: ["class1", "class2", ..., "classN"]  # List all class folder names
-     ```
-   - Make sure the `classes` list matches the subfolder names in your dataset.
-
-5. **Train**
-   - Run:
-     ```bash
-     python -m src.train --config configs/garbage_12.yaml
-     ```
-
-6. **Tips**
-   - Double-check class names for typos or mismatches.
-   - For large datasets, you may want to increase `batch_size` or adjust `num_workers` in your config.
-   - If you encounter memory issues, try reducing `batch_size`.
-
-### 3. Dataset Setup: HuggingFace TrashNet (Default)
-
-By default, this project uses the TrashNet dataset via the HuggingFace Datasets library. This is fast, reproducible, and **requires no manual download or extraction**.
-
-**Install the HuggingFace Datasets library (if not already installed):**
 ```bash
+streamlit run src/webui.py
 pip install datasets
 ```
 
@@ -127,7 +91,7 @@ pip install datasets
   data/trashnet/train/cardboard/
   data/trashnet/train/glass/
   ...
-  data/trashnet/val/[same folders as above]
+  data/trashnet/val/[same folders as above]upd
   data/trashnet/test/[same folders as above]
   ```
 
