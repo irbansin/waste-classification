@@ -14,7 +14,7 @@ hierarchy:
 model: baseline_cnn
 batch_size: 32
 img_size: 224
-epochs: 3
+epochs: 1
 lr: 0.001
 augment: true
 pretrained: false

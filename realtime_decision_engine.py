@@ -1,13 +1,16 @@
 import cv2
 import numpy as np
 import torch
+import os
+import glob
 from PIL import Image
 from ultralytics import YOLO
 import yaml
 from src.models.baseline_cnn import BaselineCNN
 from src.models.resnet import get_resnet_model
 from src.models.efficientnet import get_efficientnet_model
-from src.image_utils import get_transform, classify_patch_hierarchical
+from src.utils.transforms import get_transform
+from src.utils.classification import classify_patch_hierarchical
 
 # --- Load config and model ---
 CONFIG_PATH = "configs/baseline.yaml"
@@ -21,6 +24,8 @@ def load_config():
     return config
 
 def load_model(model_type, num_classes):
+    # Load config locally for path resolution
+    config = load_config()
     if model_type == 'baseline_cnn':
         model = BaselineCNN(num_classes=num_classes)
     elif model_type == 'resnet50':
@@ -29,7 +34,20 @@ def load_model(model_type, num_classes):
         model = get_efficientnet_model(num_classes=num_classes, model_name='efficientnet_b0')
     else:
         raise ValueError(f"Unknown model type: {model_type}")
-    model.load_state_dict(torch.load(MODEL_PATH, map_location='cpu'))
+    # Resolve model weights path robustly
+    checkpoint_dir = config.get('checkpoint_dir', 'outputs')
+    configured_model_path = config.get('model_path')
+    env_model_path = os.getenv('MODEL_PATH')
+    model_path = env_model_path or configured_model_path or MODEL_PATH
+    if not os.path.exists(model_path):
+        # Fallback to newest .pth in checkpoint_dir
+        candidates = glob.glob(os.path.join(checkpoint_dir, '*.pth'))
+        if candidates:
+            model_path = max(candidates, key=os.path.getmtime)
+    if not os.path.exists(model_path):
+        print(f"[ERROR] Model weights not found. Expected at '{model_path}'. Set env var MODEL_PATH or add 'model_path' in {CONFIG_PATH}, or place a .pth file under '{checkpoint_dir}/'.")
+        raise SystemExit(1)
+    model.load_state_dict(torch.load(model_path, map_location='cpu'))
     model.eval()
     return model
 

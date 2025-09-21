@@ -4,6 +4,8 @@ Allows uploading an image and returns predicted class label (and probability).
 Supports loading any of the trained models (baseline CNN, ResNet, EfficientNet).
 """
 import io
+import os
+import glob
 import torch
 import torch.nn.functional as F
 from fastapi import FastAPI, File, UploadFile, HTTPException
@@ -19,13 +21,15 @@ import base64
 import tempfile
 import cv2
 import numpy as np
-from src.image_utils import divide_image_into_grid, classify_patch, get_transform
+from src.utils.patches import divide_image_into_grid
+from src.utils.classification import classify_patch
+from src.utils.transforms import get_transform
 
 app = FastAPI(title="Waste Image Classification API")
 
 # --- CONFIG ---
 MODEL_TYPE = "baseline_cnn"  # Change to 'baseline_cnn' or 'efficientnet_b0' as needed
-MODEL_PATH = "outputs/baseline_cnn_best.pth"  # Path to trained weights
+MODEL_PATH = "outputs/baseline_cnn_best.pth"  # Default path to trained weights (can be overridden)
 CONFIG_PATH = "configs/baseline.yaml"  # Path to config (for class names)
 IMG_SIZE = 224
 
@@ -45,7 +49,19 @@ def load_model():
         model = get_efficientnet_model(num_classes=num_classes, model_name='efficientnet_b0')
     else:
         raise ValueError(f"Unknown model type: {MODEL_TYPE}")
-    model.load_state_dict(torch.load(MODEL_PATH, map_location='cpu'))
+    # Resolve model weights path robustly
+    checkpoint_dir = config.get('checkpoint_dir', 'outputs')
+    configured_model_path = config.get('model_path')
+    env_model_path = os.getenv('MODEL_PATH')
+    model_path = env_model_path or configured_model_path or MODEL_PATH
+    if not os.path.exists(model_path):
+        # Fallback: pick the most recent .pth in checkpoint_dir
+        candidates = glob.glob(os.path.join(checkpoint_dir, '*.pth'))
+        if candidates:
+            model_path = max(candidates, key=os.path.getmtime)
+    if not os.path.exists(model_path):
+        raise HTTPException(status_code=500, detail=f"Model weights not found. Expected at '{model_path}'. Set env var MODEL_PATH or add 'model_path' in {CONFIG_PATH}, or place a .pth file under '{checkpoint_dir}/'.")
+    model.load_state_dict(torch.load(model_path, map_location='cpu'))
     model.eval()
     return model
 

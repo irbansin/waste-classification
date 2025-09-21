@@ -50,9 +50,8 @@ waste-classification/
 
 ### 1. Environment Setup
 ```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+chmod +x dev_start.sh
+./dev_start.sh
 ```
 
 ### 2. Data Preparation
@@ -293,3 +292,54 @@ streamlit run src/webui.py
 For detailed documentation, see comments in each module and the notebooks for examples.
 
 Happy experimenting and extending your waste classification project!
+
+---
+
+## Utilities (SRP)
+
+The former `src/image_utils.py` has been refactored into SRP-focused modules. Import from these modules going forward:
+
+- `src/utils/transforms.py`
+  - Exports: `IMG_SIZE`, `get_transform()`
+- `src/utils/classification.py`
+  - Exports: `classify_patch()`, `classify_patch_hierarchical()`
+- `src/utils/patches.py`
+  - Exports: `divide_image_into_grid()`
+
+### Import Migration Guide
+
+Replace any legacy imports like:
+
+```python
+from src.image_utils import get_transform, classify_patch_hierarchical
+from src.image_utils import divide_image_into_grid, classify_patch, get_transform
+```
+
+With:
+
+```python
+from src.utils.transforms import get_transform  # and IMG_SIZE if needed
+from src.utils.classification import classify_patch, classify_patch_hierarchical
+from src.utils.patches import divide_image_into_grid
+```
+
+---
+
+## Training Quick Start
+
+From the repository root, run training with module imports enabled:
+
+```bash
+python3 -m src.train --config configs/baseline.yaml
+```
+
+Tips:
+- Ensure your dataset path in `configs/baseline.yaml` is valid (e.g., `data_dir: data/trashnet`).
+- For a quick smoke test, temporarily set `epochs: 1`.
+- Checkpoints are saved under `outputs/` as `{model_type}_best.pth`.
+
+---
+
+## Live Camera Only (Web UI)
+
+The Streamlit UI (`src/webui.py`) has been simplified to only expose the “Live Camera Trash Classification” mode. The previous single-image and multi-item upload flows were removed for a streamlined demo experience. If you wish to re-enable them, you can restore the sidebar mode selector and corresponding sections from version control history.

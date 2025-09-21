@@ -3,17 +3,8 @@ import base64
 from PIL import Image
 import torch
 import torch.nn.functional as F
-from torchvision import transforms
+from .transforms import get_transform
 
-# This should be set to match your model's expected input
-IMG_SIZE = 224
-
-def get_transform():
-    return transforms.Compose([
-        transforms.Resize((IMG_SIZE, IMG_SIZE)),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
 
 def classify_patch(patch_img, model, classes, transform=None):
     if transform is None:
@@ -34,6 +25,7 @@ def classify_patch(patch_img, model, classes, transform=None):
         "probability": pred_prob,
         "patch_b64": patch_b64
     }
+
 
 def classify_patch_hierarchical(patch_img, model, classes, transform=None, hierarchy=None):
     """
@@ -67,20 +59,3 @@ def classify_patch_hierarchical(patch_img, model, classes, transform=None, hiera
         "patch_b64": patch_b64,
         "hierarchy": hierarchy_dict
     }
-
-def divide_image_into_grid(pil_img, grid_size=3):
-    w, h = pil_img.size
-    patch_w, patch_h = w // grid_size, h // grid_size
-    patches = []
-    for i in range(grid_size):
-        for j in range(grid_size):
-            left = i * patch_w
-            upper = j * patch_h
-            right = (i + 1) * patch_w if i < grid_size - 1 else w
-            lower = (j + 1) * patch_h if j < grid_size - 1 else h
-            patch = pil_img.crop((left, upper, right, lower))
-            patches.append({
-                "patch": patch,
-                "coords": [int(left), int(upper), int(right), int(lower)]
-            })
-    return patches
