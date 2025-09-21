@@ -4,10 +4,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
-from src.data.dataset import get_data_loaders
-from src.models.baseline_cnn import BaselineCNN
-from src.models.resnet import get_resnet_model
-from src.models.efficientnet import get_efficientnet_model
+from eva.data.dataset import get_data_loaders
+from eva.models.baseline_cnn import BaselineCNN
+from eva.models.resnet import get_resnet_model
+from eva.models.efficientnet import get_efficientnet_model
 import yaml
 
 MODEL_MAP = {
@@ -25,7 +25,7 @@ def train(config):
         config (dict): configuration dictionary (can be loaded from YAML)
     """
     import warnings
-    from src.data.dataset import set_seed
+    from eva.data.dataset import set_seed
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # Set random seed for reproducibility
     seed = config.get('seed', 42)

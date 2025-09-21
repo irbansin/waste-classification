@@ -12,9 +12,9 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from PIL import Image
 from torchvision import transforms
-from src.models.baseline_cnn import BaselineCNN
-from src.models.resnet import get_resnet_model
-from src.models.efficientnet import get_efficientnet_model
+from eva.models.baseline_cnn import BaselineCNN
+from eva.models.resnet import get_resnet_model
+from eva.models.efficientnet import get_efficientnet_model
 from ultralytics import YOLO
 import yaml
 import base64

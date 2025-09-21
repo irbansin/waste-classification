@@ -17,12 +17,7 @@ API_URL = "http://localhost:8001"
 st.set_page_config(page_title="Waste Image Classifier", layout="centered")
 st.title("Waste Image Classification Web UI")
 
-# Tabs for single and multi-item detection/classification
-# mode = st.sidebar.radio("Choose Mode", [
-#     "Classify Single Waste Item",
-#     "Detect & Classify Multiple Items",
-#     "Live Camera Trash Classification"
-# ])
+
 
 
 st.header("Live Camera Trash Classification")
@@ -30,14 +25,7 @@ st.markdown("""
 This mode processes your camera feed in real time, detects and classifies trash,
 and overlays the class and hierarchy on the video. Use this as the decision engine for a robot.
 """)
-# st.warning("Live video feed will open in a separate window. Close it or press 'q' to stop.")
-    # if st.button("Start Live Camera Processing"):
-    #     import subprocess
-    #     st.info("Launching real-time decision engine...")
-    #     # Launch the external script as a subprocess
-    #     proc = subprocess.Popen(["python", "realtime_decision_engine.py"])
-    #     st.success("Real-time camera processing started. Check the new window.")
-    #     st.info("To stop, close the camera window or press 'q'.")
+
 
 import cv2
 import numpy as np
@@ -45,11 +33,11 @@ import torch
 from PIL import Image
 import yaml
 from ultralytics import YOLO
-from src.models.baseline_cnn import BaselineCNN
-from src.models.resnet import get_resnet_model
-from src.models.efficientnet import get_efficientnet_model
-from src.utils.transforms import get_transform
-from src.utils.classification import classify_patch_hierarchical
+from eva.models.baseline_cnn import BaselineCNN
+from eva.models.resnet import get_resnet_model
+from eva.models.efficientnet import get_efficientnet_model
+from eva.utils.transforms import get_transform
+from eva.utils.classification import classify_patch_hierarchical
 import time
 
 camera_placeholder = st.empty()

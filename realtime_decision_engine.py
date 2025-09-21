@@ -6,11 +6,11 @@ import glob
 from PIL import Image
 from ultralytics import YOLO
 import yaml
-from src.models.baseline_cnn import BaselineCNN
-from src.models.resnet import get_resnet_model
-from src.models.efficientnet import get_efficientnet_model
-from src.utils.transforms import get_transform
-from src.utils.classification import classify_patch_hierarchical
+from eva.models.baseline_cnn import BaselineCNN
+from eva.models.resnet import get_resnet_model
+from eva.models.efficientnet import get_efficientnet_model
+from eva.utils.transforms import get_transform
+from eva.utils.classification import classify_patch_hierarchical
 
 # --- Load config and model ---
 CONFIG_PATH = "configs/baseline.yaml"
