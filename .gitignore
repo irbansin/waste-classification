@@ -1,6 +1,5 @@
 
 .venv/
-outputs/
 fastapi.log
 *.pyc
 __pycache__/
