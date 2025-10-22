@@ -20,3 +20,4 @@ augment: true
 pretrained: false
 checkpoint_dir: outputs
 log_dir: runs/baseline_cnn
+checkpoint_path: outputs/baseline_cnn_best.pt
