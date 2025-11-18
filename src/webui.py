@@ -29,7 +29,7 @@ import yaml
 import time
 from ultralytics import YOLO
 from src.utils.transforms import get_transform
-from src.utils.classification import classify_patch_hierarchical
+from src.utils.classification import classify_patch
 import torch.nn as nn
 from torchvision import models as tv_models
 from typing import Optional
@@ -79,7 +79,7 @@ def _init_runtime():
             st.session_state['rt_config'] = yaml.safe_load(f)
     config = st.session_state['rt_config']
     st.session_state['rt_classes'] = config['classes']
-    st.session_state['rt_hierarchy'] = config.get('hierarchy', {})
+    # No hierarchical classification anymore
     # Classifier
     if 'rt_model' not in st.session_state:
         try:
@@ -123,7 +123,6 @@ if st.session_state['camera_running']:
     yolo_model = st.session_state['rt_yolo']
     transform = st.session_state['rt_transform']
     classes = st.session_state['rt_classes']
-    hierarchy = st.session_state['rt_hierarchy']
     if yolo_model is None or model is None:
         camera_placeholder.error("Models failed to initialize.")
     else:
@@ -143,13 +142,13 @@ if st.session_state['camera_running']:
                     for box in detections:
                         x1, y1, x2, y2 = map(int, box[:4])
                         crop = Image.fromarray(rgb_frame[y1:y2, x1:x2])
-                        result = classify_patch_hierarchical(crop, model, classes, transform, hierarchy)
-                        label = result['hierarchy']['level_2']
-                        level_1 = result['hierarchy']['level_1']
+                        # Flat classification (no hierarchy)
+                        result = classify_patch(crop, model, classes, transform)
+                        label = result['predicted_label']
                         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                        text = f"{level_1}/{label} ({result['probability']:.2f})"
+                        text = f"{label} ({result['probability']:.2f})"
                         cv2.putText(frame, text, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-                camera_placeholder.image(frame, channels="BGR", caption="Live Trash Classification", use_column_width=True)
+                camera_placeholder.image(frame, channels="BGR", caption="Live Trash Classification", width='stretch')
                 time.sleep(0.03)  # ~30 FPS
             cap.release()
             camera_placeholder.info("Camera stopped.")

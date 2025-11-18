@@ -1,9 +1,11 @@
 # Waste Image Classification Project
 
 ## Project Overview
-A modular deep learning system for classifying waste images into multiple categories for recycling and waste management. Supports hierarchical and flat classification, semi-supervised learning, and both single-item and multi-item (object detection) modes via API and web UI.
+
+A modular deep learning system for classifying waste images into multiple categories for recycling and waste management. Supports flat classification, semi-supervised learning, and both single-item and multi-item (object detection) modes via API and web UI.
 
 ## Architecture Diagram
+
 ```mermaid
 flowchart TD
     A[Data Preparation - data] --> B[Config and Experiment Setup - configs]
@@ -22,18 +24,20 @@ flowchart TD
 ```
 
 ## Features
+
 - Modular data pipeline for multiple datasets (TrashNet, Garbage Classification, etc.)
 - Baseline CNN and advanced models (ResNet50, EfficientNet-B0)
-- Hierarchical and flat classification options
+- Flat classification
 - Semi-supervised learning with pseudo-labeling
 - Data augmentation and class imbalance handling
-- Per-class and hierarchical evaluation metrics
+- Per-class evaluation metrics
 - FastAPI web API for inference and detection
 - Streamlit web UI for interactive use
 - Multi-item detection and classification using YOLOv8
 - Config-driven and reproducible experiments
 
 ## Project Structure
+
 ```
 waste-classification/
 │
@@ -49,12 +53,14 @@ waste-classification/
 ## Quickstart
 
 ### 1. Environment Setup
+
 ```bash
 chmod +x dev_start.sh
 ./dev_start.sh
 ```
 
 ### 2. Data Preparation
+
 - Download datasets (e.g., TrashNet, Kaggle, Garbage Classification) and place them in `data/`.
 - Organize each dataset as:
   ```
@@ -67,6 +73,7 @@ chmod +x dev_start.sh
 #### Example: Using a Larger Dataset (e.g., Garbage Classification or Kaggle Waste)
 
 1. **Download**
+
    - Go to the dataset page (e.g., [Garbage Classification on Papers With Code](https://paperswithcode.com/dataset/garbage-classification-dataset) or [Waste Classification on Kaggle](https://www.kaggle.com/datasets/techsash/waste-classification-data)).
    - Download the dataset archive (ZIP, TAR, etc.).
 
@@ -75,15 +82,18 @@ chmod +x dev_start.sh
      ```bash
      unzip garbage_classification.zip -d data/
      ```
+
 ```bash
 streamlit run src/webui.py
 pip install datasets
 ```
 
 **Default behavior:**
+
 - If you do not specify a `data_source` in your config YAML, the code will automatically download and use the TrashNet dataset from HuggingFace on first run.
 
 **To use a local folder dataset instead:**
+
 - Set `data_source: folders` in your config YAML (e.g. `configs/baseline.yaml`).
 - The expected folder structure is:
   ```
@@ -95,15 +105,18 @@ pip install datasets
   ```
 
 **Manual HuggingFace usage example:**
+
 ```python
 from datasets import load_dataset
 
 ds = load_dataset("garythung/trashnet")
 ```
+
 - This will automatically download and prepare the dataset splits (`train`, `test`, `validation`).
 - You can access images and labels directly from the `ds` object.
 
 **Extending to new dataset sources:**
+
 - The codebase uses a factory/adapter pattern for dataset loading.
 - To add a new source, create a new `torch.utils.data.Dataset` adapter and add a block in `get_data_loaders_from_source` in `src/data/dataset.py`.
 - Document the new source in your config and README.
@@ -111,54 +124,67 @@ ds = load_dataset("garythung/trashnet")
 For more details, see the [TrashNet dataset page on HuggingFace](https://huggingface.co/datasets/garythung/trashnet).
 
 ### 4. Configure Your Experiment
+
 - Edit or create a YAML config in `configs/` (e.g., `baseline.yaml`).
 - Set dataset path, class names, model type, batch size, epochs, etc.
 
 ### 5. Train a Model
+
 ```bash
 python -m src.train --config configs/baseline.yaml
 ```
+
 - You can use any YAML config in `configs/` (not just baseline.yaml)
 - Optional CLI overrides:
+
 ```bash
 python -m src.train --config configs/baseline.yaml --epochs 20 --batch_size 64
 ```
 
 ### 5. Evaluate the Model
+
 ```bash
 python src/evaluate.py --checkpoint outputs/baseline_cnn.pth
 ```
+
 - For deeper analysis (confusion matrix, per-class metrics), use your own Jupyter notebooks or scripts.
 
 ### 6. Semi-Supervised Learning
+
 - Add unlabeled images to `data/unlabeled/`.
 - Run pseudo-labeling:
+
 ```bash
 python src/pseudo_label.py --config configs/pseudo_label.yaml
 ```
 
 ### 7. Experiment with Architectures
+
 - Change `model` in config to `resnet50` or `efficientnet_b0` for transfer learning.
 - Experiment with augmentation, batch size, learning rate, etc.
 
 ## Supported Datasets
+
 - TrashNet (~2.5k, 6 classes)
 - Garbage Classification (12-class, ~15k)
 - Waste Classification Kaggle (2–3 classes, ~25k)
 - OpenLitterMap (large-scale, multi-label)
 
 ## Model Zoo
+
 - Baseline CNN (from scratch)
 - ResNet50 (transfer learning)
 - EfficientNet-B0 (transfer learning)
 - (Vision Transformer support can be added)
 
 ## Evaluation
+
 - Per-class accuracy, precision, recall
 - Confusion matrix
 - Hierarchical accuracy
 
 ## How to Extend
+
 - **Add a dataset:**
   1. Download and extract the dataset to `data/<dataset_name>/`.
   2. Split into `train/`, `val/`, and (optionally) `test/` folders per class.
@@ -170,12 +196,14 @@ python src/pseudo_label.py --config configs/pseudo_label.yaml
 - **Add experiments:** Create new YAML config files in `configs/`.
 
 ## Troubleshooting & Tips
+
 - Check data structure and config if you get missing class or dataset errors.
 - Check logs/warnings for corrupt images or missing folders.
 - Always set a random seed in your config for reproducibility.
 - All dependencies are in `requirements.txt`.
 
 ## Where to Find What
+
 - **Data loading & augmentation:** `src/data/dataset.py`
 - **Model architectures:** `src/models/`
 - **Training loop:** `src/train.py`
@@ -187,18 +215,22 @@ python src/pseudo_label.py --config configs/pseudo_label.yaml
 ---
 
 ## Using the Web API
+
 Serve your trained model as a web API using FastAPI.
 
 ### 1. Install API Dependencies
+
 All required packages are in `requirements.txt` (including fastapi, uvicorn, pillow, pyyaml, ultralytics).
 
 ### 2. Ensure Model Weights and Config are Available
+
 - Place trained model weights (e.g., `outputs/resnet50_best.pth`) and config (e.g., `configs/baseline.yaml`) in the appropriate locations.
 - Both the API and web UI require these files to be present and correctly referenced.
 - Switch models by editing `MODEL_TYPE` and `MODEL_PATH` in `src/api.py`.
 - Note: YOLOv8 weights (`yolov8n.pt`) are auto-downloaded by ultralytics the first time detection is run.
 
 ### 3. Start the API Server
+
 ```bash
 uvicorn src.api:app --reload --port 8001
 ```
@@ -206,12 +238,16 @@ uvicorn src.api:app --reload --port 8001
 ### 4. API Endpoints
 
 #### `/predict` (POST)
+
 - Upload a single image file and get predicted class and probabilities.
 - Example:
+
 ```bash
 curl -X POST "http://127.0.0.1:8001/predict" -F "file=@yourimage.jpg"
 ```
+
 - Response:
+
 ```json
 {
   "predicted_label": "plastic",
@@ -221,52 +257,64 @@ curl -X POST "http://127.0.0.1:8001/predict" -F "file=@yourimage.jpg"
 ```
 
 #### `/detect_and_classify` (POST)
+
 - Upload an image with multiple waste items. Returns bounding boxes, predicted classes, probabilities, and base64-encoded crops.
 - Example:
+
 ```bash
 curl -X POST "http://127.0.0.1:8001/detect_and_classify" -F "file=@yourimage.jpg"
 ```
+
 - Response includes detection results and image with bounding boxes.
 
 ---
 
 ## Using the Web UI
+
 A user-friendly web interface for classifying images with your trained models. Both single-item and multi-item detection/classification are supported out of the box.
 
 ### 1. Start the FastAPI Backend
+
 ```bash
 uvicorn src.api:app --reload --port 8001
 ```
 
 ### 2. Install UI Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
 ### 3. Launch the Streamlit Web UI
+
 ```bash
 streamlit run src/webui.py
 ```
 
 ### 4. Use the Interface
+
 - Upload an image and click "Classify Image" (single item) or "Detect & Classify Items" (multi-item).
 - View predictions, class probabilities, bounding boxes, and download cropped items.
 
 #### How it Works
+
 - The web UI sends your image to the FastAPI backend at `/predict` or `/detect_and_classify`.
 - The backend returns results, which are displayed in the UI.
 
 #### Customization
+
 - Change the API endpoint in `src/webui.py` if needed.
 - Extend UI with model selection, batch upload, or result history.
 
 ---
 
 ## Detecting and Classifying Multiple Waste Items
+
 - The web UI and API support detection and classification of multiple waste items in a single image using YOLOv8. No extra setup is required.
 - Results include bounding boxes, cropped images, predicted classes, and download options.
 
 ---
+
 1. Start the FastAPI backend:
    ```bash
    uvicorn src.api:app --reload --port 8001
@@ -282,6 +330,7 @@ streamlit run src/webui.py
 ---
 
 ## References
+
 - [TrashNet Dataset](https://github.com/GaryThung/trashnet)
 - [Garbage Classification Dataset](https://paperswithcode.com/dataset/garbage-classification-dataset)
 - [OpenLitterMap](https://openlittermap.com/)
@@ -302,7 +351,7 @@ The former `src/image_utils.py` has been refactored into SRP-focused modules. Im
 - `src/utils/transforms.py`
   - Exports: `IMG_SIZE`, `get_transform()`
 - `src/utils/classification.py`
-  - Exports: `classify_patch()`, `classify_patch_hierarchical()`
+  - Exports: `classify_patch()`
 - `src/utils/patches.py`
   - Exports: `divide_image_into_grid()`
 
@@ -311,7 +360,7 @@ The former `src/image_utils.py` has been refactored into SRP-focused modules. Im
 Replace any legacy imports like:
 
 ```python
-from src.image_utils import get_transform, classify_patch_hierarchical
+from src.image_utils import get_transform, classify_patch
 from src.image_utils import divide_image_into_grid, classify_patch, get_transform
 ```
 
@@ -319,7 +368,7 @@ With:
 
 ```python
 from src.utils.transforms import get_transform  # and IMG_SIZE if needed
-from src.utils.classification import classify_patch, classify_patch_hierarchical
+from src.utils.classification import classify_patch
 from src.utils.patches import divide_image_into_grid
 ```
 
@@ -334,6 +383,7 @@ python3 -m src.train --config configs/baseline.yaml
 ```
 
 Tips:
+
 - Ensure your dataset path in `configs/baseline.yaml` is valid (e.g., `data_dir: data/trashnet`).
 - For a quick smoke test, temporarily set `epochs: 1`.
 - Checkpoints are saved under `outputs/` as `{model_type}_best.pth`.
