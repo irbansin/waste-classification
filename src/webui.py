@@ -20,6 +20,7 @@ st.header("Live Camera Trash Classification")
 st.markdown("""
 This mode processes your camera feed in real time, detects and classifies trash,
 and overlays the class and hierarchy on the video. Use this as the decision engine for a robot.
+Use the sliders in the sidebar to tune detection and classification thresholds if objects are missed.
 """)
 
 
@@ -36,21 +37,10 @@ from typing import Optional
 
 # --- Small helpers to keep the main code clean ---
 def _resolve_checkpoint(config) -> Optional[str]:
-    """Return the first existing checkpoint path among config and defaults."""
-    # 1. Check user selection
-    if 'selected_model_path' in st.session_state and st.session_state['selected_model_path']:
-        p = st.session_state['selected_model_path']
-        if os.path.exists(p):
-            return p
-
-    # 2. Check config and defaults
-    candidates = [
-        config.get('checkpoint_path'),
-        'outputs/trash_classifier.pth',
-    ]
-    for p in candidates:
-        if p and os.path.exists(p):
-            return p
+    """Return the path to the required checkpoint if it exists."""
+    p = 'outputs/trash_classifier_meta.pth'
+    if os.path.exists(p):
+        return p
     return None
 
 def _inspect_checkpoint(ckpt_path):
@@ -69,72 +59,29 @@ def _inspect_checkpoint(ckpt_path):
         return None, None
 
 
-def _infer_arch_and_classes(state_dict):
-    """Heuristically determine architecture and num_classes from state_dict keys."""
-    arch = 'resnet18'  # fallback
-    num_classes = 10   # fallback
-
-    keys = list(state_dict.keys())
-
-    # Detect Arch
-    if any(k.startswith('features.') for k in keys):
-        arch = 'mobilenet_v2'
-        # Find classifier weight
-        for k in keys:
-            if 'classifier.1.weight' in k:
-                num_classes = state_dict[k].shape[0]
-                break
-    elif any(k.startswith('layer') for k in keys):
-        # ResNet
-        if 'layer1.0.conv3.weight' in keys:
-            arch = 'resnet50'
-        else:
-            arch = 'resnet18'
-
-        if 'fc.weight' in keys:
-            num_classes = state_dict['fc.weight'].shape[0]
-
-    return arch, num_classes
-
-
-def _load_classifier(num_classes: int, ckpt_path: Optional[str], arch: str = 'auto'):
-    """Create a model and load checkpoint. Auto-detects arch if 'auto'."""
+def _load_classifier(num_classes: int, ckpt_path: Optional[str]):
+    """Create a resnet50 model and load checkpoint."""
     state_dict = None
     meta = {}
+    arch = 'resnet50'
 
     # 1. Load state_dict first if we have a path
     if ckpt_path and os.path.exists(ckpt_path) and not ckpt_path.endswith('.pt'):
         state_dict, meta = _inspect_checkpoint(ckpt_path)
 
-    # 2. Determine Architecture and Num Classes
-    if arch == 'auto':
-        if meta and 'arch' in meta:
-            arch = meta['arch']
-        elif state_dict:
-            arch, inferred_classes = _infer_arch_and_classes(state_dict)
-            # Prefer inferred classes if we are auto-detecting
-            num_classes = inferred_classes
-        else:
-            arch = 'resnet18' # default fallback
-
-    # 3. Update session state classes if metadata provided them
+    # 2. Update session state classes if metadata provided them
     if meta and 'classes' in meta:
         st.session_state['rt_classes'] = meta['classes']
         num_classes = len(meta['classes'])
 
-    # 4. Instantiate Model
-    if arch == 'resnet50':
-        model = tv_models.resnet50(weights=None)
-        model.fc = nn.Linear(model.fc.in_features, num_classes)
-    elif arch == 'mobilenet_v2':
-        model = tv_models.mobilenet_v2(weights=None)
-        model.classifier[1] = nn.Linear(model.classifier[1].in_features, num_classes)
-    else:
-        # Default to resnet18
-        model = tv_models.resnet18(weights=None)
-        model.fc = nn.Linear(model.fc.in_features, num_classes)
+    # 3. Instantiate Model
+    model = tv_models.resnet50(weights=None)
+    model.fc = nn.Sequential(
+        nn.Dropout(0.5),
+        nn.Linear(model.fc.in_features, num_classes)
+    )
 
-    # 5. Load Weights
+    # 4. Load Weights
     if state_dict:
         try:
             model.load_state_dict(state_dict, strict=False)
@@ -167,8 +114,7 @@ def _maybe_reload_model(config) -> None:
         # If changed (or first time record), reload
         if prev is None or mtime != prev:
             st.info(f"Detected updated model checkpoint: {os.path.basename(ckpt)}. Reloading...")
-            arch = st.session_state.get('selected_arch', 'auto')
-            new_model = _load_classifier(len(st.session_state['rt_classes']), ckpt, arch=arch)
+            new_model = _load_classifier(len(st.session_state['rt_classes']), ckpt)
             if new_model is not None:
                 st.session_state['rt_model'] = new_model
                 st.session_state['rt_model_mtime'] = mtime
@@ -197,8 +143,7 @@ def _init_runtime():
     if 'rt_model' not in st.session_state or st.session_state['rt_model'] is None:
         try:
             ckpt_path = _resolve_checkpoint(config)
-            arch = st.session_state.get('selected_arch', 'auto')
-            st.session_state['rt_model'] = _load_classifier(len(st.session_state['rt_classes']), ckpt_path, arch=arch)
+            st.session_state['rt_model'] = _load_classifier(len(st.session_state['rt_classes']), ckpt_path)
         except Exception as e:
             st.error(f"Failed to load classification model: {e}")
             st.session_state['rt_model'] = None
@@ -215,32 +160,13 @@ def _init_runtime():
     return True
 
 
-# Model Selection Dropdown
-col1, col2 = st.columns(2)
+# Model Selection Info
+st.info("This app is configured to use `outputs/trash_classifier_meta.pth`.")
+# The selected_model_path is now implicitly handled by _resolve_checkpoint
+# which is hardcoded to look for the specific meta file.
+st.session_state['selected_model_path'] = 'outputs/trash_classifier_meta.pth'
 
-available_models = _list_models()
-with col1:
-    if available_models:
-        # Default to the first one or keep previous selection if valid
-        idx = 0
-        current_path = st.session_state.get('selected_model_path')
-        if current_path:
-            current_name = os.path.basename(current_path)
-            if current_name in available_models:
-                idx = available_models.index(current_name)
 
-        selected_model = st.selectbox("Select Classification Model", available_models, index=idx)
-        st.session_state['selected_model_path'] = os.path.join("outputs", selected_model)
-    else:
-        st.warning("No models found in 'outputs/' directory.")
-
-with col2:
-    arch_options = ['auto', 'resnet18', 'resnet50', 'mobilenet_v2']
-    selected_arch = st.selectbox("Select Model Architecture", arch_options, index=0)
-    # If architecture changes, force reload
-    if 'selected_arch' in st.session_state and st.session_state['selected_arch'] != selected_arch:
-        st.session_state['rt_model'] = None # Force reload
-    st.session_state['selected_arch'] = selected_arch
 
 
 camera_placeholder = st.empty()
@@ -260,6 +186,13 @@ if stop_camera:
     status_placeholder.info("Camera feed stopped.")
 
 if st.session_state['camera_running']:
+    # Sidebar controls for runtime tuning
+    yolo_conf = st.sidebar.slider("YOLO detection confidence", 0.05, 0.9, 0.25, 0.05,
+                                  help="Lower this to detect more objects (but may add noise). Raise to be stricter.")
+    cls_conf = st.sidebar.slider("Classification confidence threshold", 0.50, 0.95, 0.70, 0.01,
+                                 help="Only show classification labels above this probability.")
+    show_stats = st.sidebar.checkbox("Show detection stats", value=True)
+    fallback_on_empty = st.sidebar.checkbox("Fallback classify full frame if no detections", value=True)
     with st.spinner("Initializing models..."):
         _init_runtime()
     model = st.session_state['rt_model']
@@ -282,18 +215,69 @@ if st.session_state['camera_running']:
                     camera_placeholder.error("Failed to read frame from camera.")
                     break
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                yolo_results = yolo_model(rgb_frame)
+                # Run YOLO with adjustable confidence
+                try:
+                    yolo_results = yolo_model(rgb_frame, conf=yolo_conf)
+                except TypeError:
+                    # Older ultralytics versions may not accept conf in call; fallback
+                    yolo_results = yolo_model(rgb_frame)
                 if hasattr(yolo_results[0], 'boxes') and hasattr(yolo_results[0].boxes, 'xyxy'):
-                    detections = yolo_results[0].boxes.xyxy.cpu().numpy()
-                    for box in detections:
+                    boxes = yolo_results[0].boxes
+                    detections = boxes.xyxy.cpu().numpy()
+                    # YOLO confidence threshold to reduce false detections
+                    try:
+                        confs = boxes.conf.detach().cpu().numpy()
+                    except Exception:
+                        confs = [1.0] * len(detections)
+
+                    h, w = rgb_frame.shape[:2]
+                    kept = 0
+                    confidences = []
+                    for box, det_conf in zip(detections, confs):
+                        # Filter low-confidence detections from YOLO
+                        if det_conf < yolo_conf:
+                            continue
                         x1, y1, x2, y2 = map(int, box[:4])
+                        # Clamp to frame bounds
+                        x1 = max(0, min(x1, w - 1))
+                        x2 = max(0, min(x2, w))
+                        y1 = max(0, min(y1, h - 1))
+                        y2 = max(0, min(y2, h))
+                        if x2 - x1 < 4 or y2 - y1 < 4:
+                            continue
+
                         crop = Image.fromarray(rgb_frame[y1:y2, x1:x2])
                         # Flat classification (no hierarchy)
-                        result = classify_patch(crop, model, classes, transform)
-                        label = result['predicted_label']
-                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                        text = f"{label} ({result['probability']:.2f})"
-                        cv2.putText(frame, text, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                        try:
+                            result = classify_patch(crop, model, classes, transform)
+                            conf = float(result.get('probability', 0.0))
+                            if conf >= cls_conf:
+                                label = result['predicted_label']
+                                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                                text = f"{label} ({conf:.2f})"
+                                cv2.putText(frame, text, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                                kept += 1
+                                confidences.append(conf)
+                        except Exception as e:
+                            print(f"Error processing detection: {e}")
+                    # Fallback: classify whole frame if nothing kept
+                    if kept == 0 and fallback_on_empty:
+                        try:
+                            whole = Image.fromarray(rgb_frame)
+                            result = classify_patch(whole, model, classes, transform)
+                            conf = float(result.get('probability', 0.0))
+                            if conf >= cls_conf:
+                                label = result['predicted_label']
+                                cv2.putText(frame, f"Full frame: {label} ({conf:.2f})", (10, 30),
+                                            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 0), 2)
+                                confidences.append(conf)
+                        except Exception as e:
+                            print(f"Fallback classification error: {e}")
+                    if show_stats:
+                        stats_text = f"Detections: {kept}"
+                        if confidences:
+                            stats_text += f" | Avg conf: {sum(confidences)/len(confidences):.2f}"
+                        cv2.putText(frame, stats_text, (10, h - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,255), 2)
                 camera_placeholder.image(frame, channels="BGR", caption="Live Trash Classification", width='stretch')
                 time.sleep(0.03)  # ~30 FPS
             cap.release()

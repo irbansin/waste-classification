@@ -1,24 +1,21 @@
 data_dir: data/trashnet
 classes:
-  - paper
-  - green-glass
-  - clothes
-  - metal
-  - cardboard
-  - trash
-  - biological
-  - white-glass
   - battery
+  - biological
   - brown-glass
+  - cardboard
+  - clothes
+  - green-glass
+  - metal
+  - paper
   - plastic
   - shoes
+  - trash
+  - white-glass
 model: baseline_cnn
 batch_size: 32
 img_size: 224
-epochs: 1
-lr: 0.001
 augment: true
-pretrained: false
 checkpoint_dir: outputs
 log_dir: runs/baseline_cnn
 checkpoint_path: outputs/trash_classifier.pth

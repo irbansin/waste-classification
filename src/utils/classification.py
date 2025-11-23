@@ -9,13 +9,29 @@ from .transforms import get_transform
 def classify_patch(patch_img, model, classes, transform=None):
     if transform is None:
         transform = get_transform()
-    patch_tensor = transform(patch_img).unsqueeze(0)
+    
+    # Ensure RGB
+    if isinstance(patch_img, Image.Image):
+        patch_img = patch_img.convert("RGB")
+    else:
+        # If somehow not a PIL Image, convert defensively
+        patch_img = Image.fromarray(patch_img).convert("RGB")
+
+    # Move tensor to the model's device
+    device = next(model.parameters()).device
+    patch_tensor = transform(patch_img).unsqueeze(0).to(device)
+    
     with torch.no_grad():
-        logits = model(patch_tensor)
-        probs = F.softmax(logits, dim=1)[0]
-        pred_idx = torch.argmax(probs).item()
-        pred_class = classes[pred_idx]
-        pred_prob = probs[pred_idx].item()
+        # TTA: Predict on original and flipped image
+        outputs = model(patch_tensor)
+        outputs_flip = model(torch.flip(patch_tensor, [3]))
+        # Average predictions
+        avg_probs = (F.softmax(outputs, dim=1) + F.softmax(outputs_flip, dim=1)) / 2
+        probs = avg_probs[0]
+        pred_idx = int(torch.argmax(probs).item())
+        pred_prob = float(probs[pred_idx].item())
+    pred_class = classes[pred_idx]
+        
     # Encode patch to base64
     patch_bytes = io.BytesIO()
     patch_img.save(patch_bytes, format="JPEG")
