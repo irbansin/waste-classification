@@ -150,7 +150,10 @@ def _init_runtime():
     # YOLO
     if 'rt_yolo' not in st.session_state or st.session_state['rt_yolo'] is None:
         try:
-            st.session_state['rt_yolo'] = YOLO('yolov8n.pt')
+            # Use selected model path
+            yolo_path = st.session_state.get('rt_yolo_path', 'yolov8n.pt')
+            st.session_state['rt_yolo'] = YOLO(yolo_path)
+            st.toast(f"Loaded YOLO model: {yolo_path}")
         except Exception as e:
             st.error(f"Failed to load YOLO model: {e}")
             st.session_state['rt_yolo'] = None
@@ -187,12 +190,27 @@ if stop_camera:
 
 if st.session_state['camera_running']:
     # Sidebar controls for runtime tuning
-    yolo_conf = st.sidebar.slider("YOLO detection confidence", 0.05, 0.9, 0.25, 0.05,
+    st.sidebar.header("Detection Settings")
+
+    # Model Selector
+    available_yolo_models = {'Standard COCO (yolov8n.pt)': 'yolov8n.pt'}
+    if os.path.exists('yolov8n_trash.pt'):
+        available_yolo_models['Custom Trash Model (yolov8n_trash.pt)'] = 'yolov8n_trash.pt'
+    
+    selected_yolo_name = st.sidebar.selectbox("Detection Model", list(available_yolo_models.keys()), index=0)
+    selected_yolo_path = available_yolo_models[selected_yolo_name]
+
+    # Store selection in session state to trigger reload if changed
+    if 'rt_yolo_path' not in st.session_state or st.session_state['rt_yolo_path'] != selected_yolo_path:
+        st.session_state['rt_yolo_path'] = selected_yolo_path
+        st.session_state['rt_yolo'] = None # Force reload
+
+    yolo_conf = st.sidebar.slider("YOLO detection confidence", 0.05, 0.9, 0.15, 0.05,
                                   help="Lower this to detect more objects (but may add noise). Raise to be stricter.")
-    cls_conf = st.sidebar.slider("Classification confidence threshold", 0.50, 0.95, 0.70, 0.01,
+    cls_conf = st.sidebar.slider("Classification confidence threshold", 0.50, 0.95, 0.60, 0.01,
                                  help="Only show classification labels above this probability.")
     show_stats = st.sidebar.checkbox("Show detection stats", value=True)
-    fallback_on_empty = st.sidebar.checkbox("Fallback classify full frame if no detections", value=True)
+    fallback_on_empty = st.sidebar.checkbox("Fallback classify full frame if no detections", value=False)
     with st.spinner("Initializing models..."):
         _init_runtime()
     model = st.session_state['rt_model']
@@ -254,8 +272,17 @@ if st.session_state['camera_running']:
                             if conf >= cls_conf:
                                 label = result['predicted_label']
                                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                                
+                                # Draw label with background for better visibility
                                 text = f"{label} ({conf:.2f})"
-                                cv2.putText(frame, text, (x1, y1-10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+                                font_scale = 1.0
+                                (text_w, text_h), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, 2)
+                                # Ensure text is within frame (if box is at top, draw inside/below)
+                                text_y = y1 - 10 if y1 - 35 > 0 else y1 + text_h + 10
+                                
+                                cv2.rectangle(frame, (x1, text_y - text_h - 5), (x1 + text_w, text_y + 5), (0, 0, 0), -1)
+                                cv2.putText(frame, text, (x1, text_y), cv2.FONT_HERSHEY_SIMPLEX, font_scale, (255, 255, 255), 2)
+                                
                                 kept += 1
                                 confidences.append(conf)
                         except Exception as e:
