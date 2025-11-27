@@ -200,6 +200,13 @@ if st.session_state['camera_running']:
     selected_yolo_name = st.sidebar.selectbox("Detection Model", list(available_yolo_models.keys()), index=0)
     selected_yolo_path = available_yolo_models[selected_yolo_name]
 
+    # Classification Method Selector
+    classification_method = st.sidebar.radio(
+        "Classification Method",
+        ("ResNet50 (Two-Stage)", "YOLO (One-Stage)"),
+        help="ResNet50: Uses a separate classifier on the cropped object. YOLO: Uses the detector's class prediction."
+    )
+
     # Store selection in session state to trigger reload if changed
     if 'rt_yolo_path' not in st.session_state or st.session_state['rt_yolo_path'] != selected_yolo_path:
         st.session_state['rt_yolo_path'] = selected_yolo_path
@@ -245,13 +252,15 @@ if st.session_state['camera_running']:
                     # YOLO confidence threshold to reduce false detections
                     try:
                         confs = boxes.conf.detach().cpu().numpy()
+                        cls_ids = boxes.cls.detach().cpu().numpy().astype(int)
                     except Exception:
                         confs = [1.0] * len(detections)
+                        cls_ids = [0] * len(detections)
 
                     h, w = rgb_frame.shape[:2]
                     kept = 0
                     confidences = []
-                    for box, det_conf in zip(detections, confs):
+                    for box, det_conf, cls_id in zip(detections, confs, cls_ids):
                         # Filter low-confidence detections from YOLO
                         if det_conf < yolo_conf:
                             continue
@@ -265,12 +274,24 @@ if st.session_state['camera_running']:
                             continue
 
                         crop = Image.fromarray(rgb_frame[y1:y2, x1:x2])
-                        # Flat classification (no hierarchy)
-                        try:
-                            result = classify_patch(crop, model, classes, transform)
-                            conf = float(result.get('probability', 0.0))
-                            if conf >= cls_conf:
+                        
+                        label = None
+                        conf = 0.0
+
+                        if classification_method == "ResNet50 (Two-Stage)":
+                            # Flat classification (no hierarchy)
+                            try:
+                                result = classify_patch(crop, model, classes, transform)
+                                conf = float(result.get('probability', 0.0))
                                 label = result['predicted_label']
+                            except Exception as e:
+                                print(f"Error processing detection: {e}")
+                        else:
+                            # YOLO One-Stage
+                            conf = float(det_conf)
+                            label = yolo_model.names.get(cls_id, str(cls_id))
+
+                        if label and conf >= cls_conf:
                                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
                                 
                                 # Draw label with background for better visibility
@@ -285,8 +306,6 @@ if st.session_state['camera_running']:
                                 
                                 kept += 1
                                 confidences.append(conf)
-                        except Exception as e:
-                            print(f"Error processing detection: {e}")
                     # Fallback: classify whole frame if nothing kept
                     if kept == 0 and fallback_on_empty:
                         try:
